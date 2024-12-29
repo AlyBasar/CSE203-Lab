@@ -9,7 +9,7 @@ public class BasePlusCommissionEmployee extends CommissionEmployee {
 		super(firstName, lastName, SSN, grossSales, commissionRate);
 		
 		if (baseSalary < 0) {
-            throw new IllegalArgumentException("Base salary must be >= 0");
+            throw new IllegalArgumentException("Base salary must be >= 0!");
         }
         this.baseSalary = baseSalary;
 	}

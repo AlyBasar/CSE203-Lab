@@ -9,12 +9,12 @@ public class CommissionEmployee extends Employee {
 		super(firstName, lastName, SSN);
 		
 		if (grossSales < 0) {
-            throw new IllegalArgumentException("Gross sales must be >= 0");
+            throw new IllegalArgumentException("Gross sales must be >= 0!");
         }
 		this.grossSales = grossSales;
 		
         if (commissionRate <= 0 || commissionRate >= 1) {
-            throw new IllegalArgumentException("Commission rate must be > 0 and < 1");
+            throw new IllegalArgumentException("Commission rate must be > 0 and < 1!");
         }
         this.commissionRate = commissionRate;
 	}

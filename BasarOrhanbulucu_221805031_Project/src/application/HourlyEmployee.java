@@ -9,12 +9,12 @@ public class HourlyEmployee extends Employee {
 		super(firstName, lastName, SSN);
 		
 		if (wage < 0) {
-            throw new IllegalArgumentException("Wage must be >= 0");
+            throw new IllegalArgumentException("Wage must be >= 0!");
         }
 		this.wage = wage;
 		
         if (hours < 0 || hours >= 168) {
-            throw new IllegalArgumentException("Hours must be >= 0 and < 168");
+            throw new IllegalArgumentException("Hours must be >= 0 and < 168!");
         }
         this.hours = hours;
 	}
