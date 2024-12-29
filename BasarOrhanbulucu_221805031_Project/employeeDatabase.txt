@@ -1,0 +1,7 @@
+SalariedEmployee, Başar, Orhanbulucu, 00, 500.0
+HourlyEmployee, Mehmet, Yeşiltepe, 10, 10, 40
+CommissionEmployee, Yiğit Emin, Çakmak, 20, 100, 0.9
+BasePlusCommissionEmployee, Furkan Kerem, Atalay, 30, 150, 0.8, 200.0
+SalariedEmployee, Berkay, Kaybal, 01, 400.0
+CommissionEmployee, Ahmet, Sus, 21, 150, 0.7
+BasePlusCommissionEmployee, Buket, Otsuz, 31, 200, 0.5, 300.0
