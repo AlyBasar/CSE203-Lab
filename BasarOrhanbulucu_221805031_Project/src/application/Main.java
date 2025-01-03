@@ -1,8 +1,10 @@
 package application;
 	
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -126,13 +128,19 @@ public class Main extends Application {
 		VBox mainLayout = new VBox(20);	//	dikey boşluk
 		mainLayout.getChildren().addAll(topLayout, midLayout, botLayout);
 		
+		final boolean[] updateable = {false};	//	güncel update'lenebilirlik durumu. Final sayesinde referansı sabit
+		
 		//ComboBox seçim durumu
-		cmbchooseEmployeeType.setOnAction(e -> comboBoxSelection(cmbchooseEmployeeType.getValue(), 
+		cmbchooseEmployeeType.setOnAction(e -> {
+			comboBoxSelection(cmbchooseEmployeeType.getValue(), 
 					txtfirstName, txtlastName, txtSSN, txtsearchUpdateSSN, lblsalaryValue, txtgrossSales, 
-					txtcommissionRate, txtbaseSalary, txtweeklySalary, txtwage, txthours));
+					txtcommissionRate, txtbaseSalary, txtweeklySalary, txtwage, txthours);
+			
+			updateable[0] = false;
+		});
 		
 		//Buton işlevleri
-		btnadd.setOnAction(e -> {
+		btnadd.setOnAction(e -> {	//ADD
 			if (cmbchooseEmployeeType.getValue() == null || cmbchooseEmployeeType.equals("None") ||
 					txtfirstName.getText().isEmpty() || txtlastName.getText().isEmpty()) {
 				Alert alert = new Alert(AlertType.WARNING);
@@ -145,29 +153,72 @@ public class Main extends Application {
 			String selectedType = cmbchooseEmployeeType.getValue();	//	seçilen employee türü
 			
 			try {
-				addEmployee(employeeArray, selectedType, txtfirstName, txtlastName, txtgrossSales, txtcommissionRate, 
-						txtbaseSalary, txtweeklySalary, txtwage, txthours);
+				addEmployee(employeeArray, selectedType, txtfirstName, txtlastName, lblsalaryValue, txtgrossSales, 
+						txtcommissionRate, txtbaseSalary, txtweeklySalary, txtwage, txthours);
+				
+				updateable[0] = false;
+				
 			} catch (IOException e1) {
 				System.out.println("Add Error");
 				e1.printStackTrace();
 			}
 			
+			
+			
 		});
 		
-		btnsearch.setOnAction(e -> {
-			System.out.println("search");
-			searchEmployee();
+		btnsearch.setOnAction(e -> {	//SEARCH
+			if (txtsearchUpdateSSN.getText().isEmpty()) {
+				Alert alert = new Alert(AlertType.WARNING);
+				alert.setTitle("Error");
+				alert.setHeaderText("Missing Fields!");
+				alert.showAndWait();
+				return;
+			}
+			
+			clearTextFields("search", txtfirstName, txtlastName, txtSSN, txtsearchUpdateSSN, lblsalaryValue, 
+					txtgrossSales, txtcommissionRate, txtbaseSalary, txtweeklySalary, 
+					txtwage, txthours);
+			
+			String searching_ssn = txtsearchUpdateSSN.getText();	//	Aranan ssn
+			
+			searchEmployee(employeeArray, searching_ssn, cmbchooseEmployeeType, txtfirstName, txtlastName, txtSSN, txtsearchUpdateSSN, 
+					lblsalaryValue, txtgrossSales, txtcommissionRate, txtbaseSalary, txtweeklySalary, txtwage, 
+					txthours);
+			
+			updateable[0] = true;	//	bu işlem sonrası update edilebilir
+			
 		});
 		
-		btnupdate.setOnAction(e -> {
-			System.out.println("update");
-			updateEmployee();
+		btnupdate.setOnAction(e -> {	//UPDATE
+			if (updateable[0]) {
+				
+				try {
+					updateEmployee(employeeArray, updateable, cmbchooseEmployeeType, txtfirstName, txtlastName, txtSSN, 
+							txtsearchUpdateSSN, lblsalaryValue, txtgrossSales, txtcommissionRate, txtbaseSalary, 
+							txtweeklySalary, txtwage, txthours);
+				} catch (IOException e1) {
+					System.out.println("Update Error");
+					e1.printStackTrace();
+				}
+				
+			}
+			else {
+				Alert alert = new Alert(AlertType.WARNING);
+				alert.setTitle("Error");
+				alert.setHeaderText("To update, you must first search SSN!");
+				alert.showAndWait();
+				return;
+			}
+			
 		});
 		
-		btnclear.setOnAction(e -> {
+		btnclear.setOnAction(e -> {		//CLEAR
 			clearTextFields("all", txtfirstName, txtlastName, txtSSN, txtsearchUpdateSSN, lblsalaryValue, 
 					txtgrossSales, txtcommissionRate, txtbaseSalary, txtweeklySalary, 
 					txtwage, txthours);
+			
+			updateable[0] = false;
 			
 		});
 		
@@ -396,12 +447,12 @@ public class Main extends Application {
 			txtwage.clear();
 			txthours.clear();
 			break;
-		
-		case "add":
+			
+		case "search":
 			txtfirstName.clear();
 			txtlastName.clear();
 			txtSSN.clear();
-			txtsearchUpdateSSN.clear();
+			lblsalaryValue.setText("VALUE");
 			txtgrossSales.clear();
 			txtcommissionRate.clear();
 			txtbaseSalary.clear();
@@ -413,12 +464,15 @@ public class Main extends Application {
 	}
 	
 	public static void addEmployee(ArrayList<Employee> employeeArray, String selectedType, TextField txtfirstName, 
-			TextField txtlastName, TextField txtgrossSales, TextField txtcommissionRate, TextField txtbaseSalary, 
-			TextField txtweeklySalary, TextField txtwage, TextField txthours) throws IOException {
+			TextField txtlastName, Label lblsalaryValue, TextField txtgrossSales, TextField txtcommissionRate, 
+			TextField txtbaseSalary, TextField txtweeklySalary, TextField txtwage, TextField txthours) throws IOException {
 		
 		File file = new File("employeeDatabase.txt");			//	database dosyası
-		FileWriter fWriter = new FileWriter(file, true);		// File Writer
+		FileWriter fWriter = new FileWriter(file, true);		//	File Writer
 		BufferedWriter bWriter = new BufferedWriter(fWriter);	//	Buffered Writer
+		
+		Alert alert1 = new Alert(AlertType.INFORMATION);		//bilgilendirme uyarısı
+		alert1.setHeaderText("Employee Added");
 		
 		String firstName = txtfirstName.getText();				//	First Name
 		String lastName = txtlastName.getText();				//	Last Name
@@ -436,6 +490,14 @@ public class Main extends Application {
 			}
 			
 			Double weeklySalary = Double.parseDouble(txtweeklySalary.getText());
+			if (weeklySalary < 0) {
+				Alert alert = new Alert(AlertType.WARNING);
+				alert.setTitle("Error");
+				alert.setHeaderText("Weekly salary must be >= 0");
+				alert.showAndWait();
+				bWriter.close();
+				return;
+			}
 			
 			SalariedEmployee salariedEmployee = new SalariedEmployee(firstName, lastName, ssn, weeklySalary);
 			employeeArray.add(salariedEmployee);				//arraylist'e ekle
@@ -443,12 +505,11 @@ public class Main extends Application {
 			bWriter.write("SalariedEmployee, " + firstName + ", " + lastName + ", " //dosyaya ekle
 			+ ssn + ", " + weeklySalary + "\n");
 			
-			Alert alert1 = new Alert(AlertType.INFORMATION);	//bilgilendirme uyarısı ver
-			alert1.setHeaderText("Employee Added");
-			alert1.showAndWait();
+			alert1.showAndWait();	//	Bilgilendirme uyarısı ver
 			
-			clearTextFields("add", txtfirstName, txtlastName, txtfirstName, txtlastName, null, txtgrossSales, 
+			clearTextFields("all", txtfirstName, txtlastName, txtfirstName, txtlastName, lblsalaryValue, txtgrossSales, 
 					txtcommissionRate, txtbaseSalary, txtweeklySalary, txtwage, txthours);
+			
 			break;
 			
 		case "Hourly Employee":
@@ -462,19 +523,33 @@ public class Main extends Application {
 			}
 			
 			Double wage = Double.parseDouble(txtwage.getText());
+			if (wage < 0) {
+				Alert alert = new Alert(AlertType.WARNING);
+				alert.setTitle("Error");
+				alert.setHeaderText("Wage must be >= 0!");
+				alert.showAndWait();
+				bWriter.close();
+				return;
+			}
 			Double hours = Double.parseDouble(txthours.getText());
+			if (hours < 0 || hours >= 168) {
+				Alert alert = new Alert(AlertType.WARNING);
+				alert.setTitle("Error");
+				alert.setHeaderText("Hours must be >= 0 and < 168!");
+				alert.showAndWait();
+				bWriter.close();
+				return;
+			}
 			
 			HourlyEmployee hourlyEmployee = new HourlyEmployee(firstName, lastName, ssn, wage, hours);
 			employeeArray.add(hourlyEmployee);					//arraylist'e ekle
 			
 			bWriter.write("HourlyEmployee, " + firstName + ", " + lastName + ", " //dosyaya ekle
 					+ ssn + ", " + wage + ", " + hours + "\n");
+
+			alert1.showAndWait();	//	Bilgilendirme uyarısı ver
 			
-			Alert alert2 = new Alert(AlertType.INFORMATION);	//bilgilendirme uyarısı ver
-			alert2.setHeaderText("Employee Added");
-			alert2.showAndWait();
-			
-			clearTextFields("add", txtfirstName, txtlastName, txtfirstName, txtlastName, null, txtgrossSales, 
+			clearTextFields("all", txtfirstName, txtlastName, txtfirstName, txtlastName, lblsalaryValue, txtgrossSales, 
 					txtcommissionRate, txtbaseSalary, txtweeklySalary, txtwage, txthours);
 			break;
 			
@@ -487,7 +562,9 @@ public class Main extends Application {
 				bWriter.close();
 				return;
 			}
-			if (Double.parseDouble(txtgrossSales.getText()) < 0) {
+			
+			Double grossSales = Double.parseDouble(txtgrossSales.getText());
+			if (grossSales < 0) {
 				Alert alert = new Alert(AlertType.WARNING);
 				alert.setTitle("Error");
 				alert.setHeaderText("Gross sales must be >= 0!");
@@ -495,8 +572,8 @@ public class Main extends Application {
 				bWriter.close();
 				return;
 			}
-			if (Double.parseDouble(txtcommissionRate.getText()) <= 0 || 
-					Double.parseDouble(txtcommissionRate.getText()) >= 1) {
+			Double commissionRate = Double.parseDouble(txtcommissionRate.getText());
+			if (commissionRate <= 0 || commissionRate >= 1) {
 				Alert alert = new Alert(AlertType.WARNING);
 				alert.setTitle("Error");
 				alert.setHeaderText("Commission rate must be > 0 and < 1");
@@ -505,22 +582,18 @@ public class Main extends Application {
 				return;
 			}
 			
-			Double grossSales = Double.parseDouble(txtgrossSales.getText());
-			Double commissionRate = Double.parseDouble(txtcommissionRate.getText());
-			
 			CommissionEmployee commissionEmployee = new CommissionEmployee(firstName, lastName, ssn, 
 					grossSales, commissionRate);
 			employeeArray.add(commissionEmployee);				//arraylist'e ekle
 			
 			bWriter.write("CommissionEmployee, " + firstName + ", " + lastName + ", " //dosyaya ekle
 					+ ssn + ", " + grossSales + ", " + commissionRate + "\n");
+
+			alert1.showAndWait();	//	Bilgilendirme uyarısı ver
 			
-			Alert alert3 = new Alert(AlertType.INFORMATION);	//bilgilendirme uyarısı ver
-			alert3.setHeaderText("Employee Added");
-			alert3.showAndWait();
-			
-			clearTextFields("add", txtfirstName, txtlastName, txtfirstName, txtlastName, null, txtgrossSales, 
+			clearTextFields("all", txtfirstName, txtlastName, txtfirstName, txtlastName, lblsalaryValue, txtgrossSales, 
 					txtcommissionRate, txtbaseSalary, txtweeklySalary, txtwage, txthours);
+			
 			break;
 			
 		case "Base Plus Commission Employee":
@@ -532,7 +605,8 @@ public class Main extends Application {
 				bWriter.close();
 				return;
 			}
-			if (Double.parseDouble(txtgrossSales.getText()) < 0) {
+			Double bpgrossSales = Double.parseDouble(txtgrossSales.getText());
+			if (bpgrossSales < 0) {
 				Alert alert = new Alert(AlertType.WARNING);
 				alert.setTitle("Error");
 				alert.setHeaderText("Gross sales must be >= 0!");
@@ -540,16 +614,17 @@ public class Main extends Application {
 				bWriter.close();
 				return;
 			}
-			if (Double.parseDouble(txtcommissionRate.getText()) <= 0 || 
-					Double.parseDouble(txtcommissionRate.getText()) >= 1) {
+			Double bpcommissionRate = Double.parseDouble(txtcommissionRate.getText());
+			if (bpcommissionRate <= 0 || bpcommissionRate >= 1) {
 				Alert alert = new Alert(AlertType.WARNING);
 				alert.setTitle("Error");
-				alert.setHeaderText("Commission rate must be > 0 and < 1!");
+				alert.setHeaderText("Commission rate must be > 0 and < 1");
 				alert.showAndWait();
 				bWriter.close();
 				return;
 			}
-			if (Double.parseDouble(txtbaseSalary.getText()) < 0) {
+			Double baseSalary = Double.parseDouble(txtbaseSalary.getText());
+			if (baseSalary < 0) {
 				Alert alert = new Alert(AlertType.WARNING);
 				alert.setTitle("Error");
 				alert.setHeaderText("Base salary must be >= 0!");
@@ -558,23 +633,18 @@ public class Main extends Application {
 				return;
 			}
 			
-			Double bpgrossSales = Double.parseDouble(txtgrossSales.getText());
-			Double bpcommissionRate = Double.parseDouble(txtcommissionRate.getText());
-			Double baseSalary = Double.parseDouble(txtbaseSalary.getText());
-			
 			BasePlusCommissionEmployee basePlusCommissionEmployee = new BasePlusCommissionEmployee(firstName, lastName, 
 					ssn, bpgrossSales, bpcommissionRate, baseSalary);
 			employeeArray.add(basePlusCommissionEmployee);		//arraylist'e ekle
 
 			bWriter.write("BasePlusCommissionEmployee, " + firstName + ", " + lastName + ", " //dosyaya ekle
 					+ ssn + ", " + bpgrossSales + ", " + bpcommissionRate + ", " + baseSalary + "\n");
+
+			alert1.showAndWait();	//	Bilgilendirme uyarısı ver
 			
-			Alert alert4 = new Alert(AlertType.INFORMATION);	//bilgilendirme uyarısı ver
-			alert4.setHeaderText("Employee Added");
-			alert4.showAndWait();
-			
-			clearTextFields("add", txtfirstName, txtlastName, txtfirstName, txtlastName, null, txtgrossSales, 
+			clearTextFields("all", txtfirstName, txtlastName, txtfirstName, txtlastName, lblsalaryValue, txtgrossSales, 
 					txtcommissionRate, txtbaseSalary, txtweeklySalary, txtwage, txthours);
+			
 			break;
 			
 		}
@@ -582,12 +652,298 @@ public class Main extends Application {
 		bWriter.close();
 	}
 	
-	public static void searchEmployee() {
+	public static void searchEmployee(ArrayList<Employee> employeeArray, String searching_ssn, 
+			ComboBox<String> cmbchooseEmployeeType, TextField txtfirstName, TextField txtlastName, TextField txtSSN, 
+			TextField txtsearchUpdateSSN, Label lblsalaryValue, TextField txtgrossSales, TextField txtcommissionRate, 
+			TextField txtbaseSalary, TextField txtweeklySalary, TextField txtwage, TextField txthours) {
+		
+		boolean employee_founded = false;
+		
+		for (int i = 0; i < employeeArray.size(); i++) {
+			if (employeeArray.get(i).getSSN().equals(searching_ssn)) {
+				Employee employee = employeeArray.get(i);
+				employee_founded = true;	//	çalışan bulundu
+				
+				if (employee instanceof SalariedEmployee) {
+					
+					SalariedEmployee salariedEmployee = (SalariedEmployee) employee;	//	tür dönüşümü
+					cmbchooseEmployeeType.getSelectionModel().select("Salaried Employee");	//	cmbox seçimi
+					
+					txtfirstName.setText(salariedEmployee.getFirstName());
+					txtlastName.setText(salariedEmployee.getLastName());
+					txtSSN.setText(salariedEmployee.getSSN());
+					lblsalaryValue.setText(Double.toString(salariedEmployee.getPaymentAmount()));
+					txtweeklySalary.setText(Double.toString(salariedEmployee.getWeeklySalary()));
+				}
+				
+				else if (employee instanceof HourlyEmployee) {
+					
+					HourlyEmployee hourlyEmployee = (HourlyEmployee) employee;	//	tür dönüşümü
+					cmbchooseEmployeeType.getSelectionModel().select("Hourly Employee");	//	cmbox seçimi
+					
+					txtfirstName.setText(hourlyEmployee.getFirstName());
+					txtlastName.setText(hourlyEmployee.getLastName());
+					txtSSN.setText(hourlyEmployee.getSSN());
+					lblsalaryValue.setText(Double.toString(hourlyEmployee.getPaymentAmount()));
+					txtwage.setText(Double.toString(hourlyEmployee.getWage()));
+					txthours.setText(Double.toString(hourlyEmployee.getHours()));
+				}
+				
+				else if (employee instanceof CommissionEmployee) {
+					
+					if (employee instanceof BasePlusCommissionEmployee) {
+						
+						BasePlusCommissionEmployee basePlusCommissionEmployee = (BasePlusCommissionEmployee) employee;	//	tür dönüşümü
+						cmbchooseEmployeeType.getSelectionModel().select("Base Plus Commission Employee");	//	cmbox seçimi
+						
+						txtfirstName.setText(basePlusCommissionEmployee.getFirstName());
+						txtlastName.setText(basePlusCommissionEmployee.getLastName());
+						txtSSN.setText(basePlusCommissionEmployee.getSSN());
+						lblsalaryValue.setText(Double.toString(basePlusCommissionEmployee.getPaymentAmount()));
+						txtgrossSales.setText(Double.toString(basePlusCommissionEmployee.getGrossSales()));
+						txtcommissionRate.setText(Double.toString(basePlusCommissionEmployee.getCommissionRate()));
+						txtbaseSalary.setText(Double.toString(basePlusCommissionEmployee.getBaseSalary()));
+					}
+					else {
+						
+						CommissionEmployee commissionEmployee = (CommissionEmployee) employee;	//	tür dönüşümü
+						cmbchooseEmployeeType.getSelectionModel().select("Commission Employee");	//	cmbox seçimi
+						
+						txtfirstName.setText(commissionEmployee.getFirstName());
+						txtlastName.setText(commissionEmployee.getLastName());
+						txtSSN.setText(commissionEmployee.getSSN());
+						lblsalaryValue.setText(Double.toString(commissionEmployee.getPaymentAmount()));
+						txtgrossSales.setText(Double.toString(commissionEmployee.getGrossSales()));
+						txtcommissionRate.setText(Double.toString(commissionEmployee.getCommissionRate()));
+					}
+				}
+				
+				break;
+				
+			}
+		}
+		
+		if (!employee_founded) {	//	Aranan ssn bulunamadıysa
+			Alert alert = new Alert(AlertType.WARNING);
+		       alert.setTitle("Employee Not Found");
+		       alert.setHeaderText("No employee found with the given SSN.");
+		       alert.showAndWait();
+		}
 		
 	}
 	
-	public static void updateEmployee() {
+	public static void updateEmployee(ArrayList<Employee> employeeArray, boolean[] updateable, 
+			ComboBox<String> cmbchooseEmployeeType, TextField txtfirstName, TextField txtlastName, 
+			TextField txtSSN, TextField txtsearchUpdateSSN, Label lblsalaryValue, TextField txtgrossSales, 
+			TextField txtcommissionRate, TextField txtbaseSalary, TextField txtweeklySalary, TextField txtwage, 
+			TextField txthours) throws IOException {
 		
+		String employee_type = cmbchooseEmployeeType.getValue();	//Employee türü
+		int employee_ssn = Integer.parseInt(txtSSN.getText());		//Employee ssn
+		Employee employee = employeeArray.get(employee_ssn);		//Seçilen employee
+		String updatedLine;											//Dosyaya yazdırılacak yeni satır
+		
+		Alert alert1 = new Alert(AlertType.INFORMATION);			//Bilgilendirme uyarısı
+		alert1.setHeaderText("Employee Updated");
+		
+		String new_firstName = txtfirstName.getText();
+		String new_lastName = txtlastName.getText();
+		
+		switch (employee_type) {
+		case "Salaried Employee":
+			SalariedEmployee salariedEmployee = (SalariedEmployee) employee;	//	tür dönüşümü
+			
+			double new_weeklySalary = Double.parseDouble(txtweeklySalary.getText());
+			if (new_weeklySalary < 0) {
+				Alert alert = new Alert(AlertType.WARNING);
+				alert.setTitle("Error");
+				alert.setHeaderText("Weekly salary must be >= 0");
+				alert.showAndWait();
+				return;
+			}
+			
+			salariedEmployee.setFirstName(new_firstName);
+			salariedEmployee.setLastName(new_lastName);
+			salariedEmployee.setWeeklySalary(new_weeklySalary);
+			
+			updatedLine = "SalariedEmployee, " + new_firstName + ", " + new_lastName + ", " + employee_ssn 
+					+ ", " + new_weeklySalary;
+			
+			updateFile(employee_ssn, updatedLine);	//	Dosyayı güncelle
+			
+			alert1.showAndWait();	//Bilgilendirme uyarısı ver
+			
+			clearTextFields("all", txtfirstName, txtlastName, txtSSN, txtsearchUpdateSSN, lblsalaryValue, 
+					txtgrossSales, txtcommissionRate, txtbaseSalary, txtweeklySalary, txtwage, txthours);
+			
+			updateable[0] = false;
+			break;
+			
+		case "Hourly Employee":
+			HourlyEmployee hourlyEmployee = (HourlyEmployee) employee;	//	tür dönüşümü
+			
+			double new_wage = Double.parseDouble(txtwage.getText());
+			if (new_wage < 0) {
+				Alert alert = new Alert(AlertType.WARNING);
+				alert.setTitle("Error");
+				alert.setHeaderText("Wage must be >= 0!");
+				alert.showAndWait();
+				return;
+			}
+			double new_hours = Double.parseDouble(txthours.getText());
+			if (new_hours < 0 || new_hours >= 168) {
+				Alert alert = new Alert(AlertType.WARNING);
+				alert.setTitle("Error");
+				alert.setHeaderText("Hours must be >= 0 and < 168!");
+				alert.showAndWait();
+				return;
+			}
+			
+			hourlyEmployee.setFirstName(new_firstName);
+			hourlyEmployee.setLastName(new_lastName);
+			hourlyEmployee.setWage(new_wage);
+			hourlyEmployee.setHours(new_hours);
+			
+			updatedLine = "HourlyEmployee, " + new_firstName + ", " + new_lastName + ", " + employee_ssn 
+					+ ", " + new_wage + ", " + new_hours;
+			
+			updateFile(employee_ssn, updatedLine);	//	Dosyayı güncelle
+			
+			alert1.showAndWait();	//Bilgilendirme uyarısı ver
+			
+			clearTextFields("all", txtfirstName, txtlastName, txtSSN, txtsearchUpdateSSN, lblsalaryValue, 
+					txtgrossSales, txtcommissionRate, txtbaseSalary, txtweeklySalary, txtwage, txthours);
+			
+			updateable[0] = false;
+			break;
+			
+		case "Commission Employee":
+			CommissionEmployee commissionEmployee = (CommissionEmployee) employee;	//	tür dönüşümü
+			double new_grossSales = Double.parseDouble(txtgrossSales.getText());
+			if (new_grossSales < 0) {
+				Alert alert = new Alert(AlertType.WARNING);
+				alert.setTitle("Error");
+				alert.setHeaderText("Gross sales must be >= 0!");
+				alert.showAndWait();
+				return;
+			}
+			double new_commissionRate = Double.parseDouble(txtcommissionRate.getText());
+			if (new_commissionRate <= 0 || new_commissionRate >= 1) {
+				Alert alert = new Alert(AlertType.WARNING);
+				alert.setTitle("Error");
+				alert.setHeaderText("Commission rate must be > 0 and < 1");
+				alert.showAndWait();
+				return;
+			}
+			
+			commissionEmployee.setFirstName(new_firstName);
+			commissionEmployee.setLastName(new_lastName);
+			commissionEmployee.setGrossSales(new_grossSales);
+			commissionEmployee.setCommissionRate(new_commissionRate);
+			
+			updatedLine = "HourlyEmployee, " + new_firstName + ", " + new_lastName + ", " + employee_ssn 
+					+ ", " + new_grossSales + ", " + new_commissionRate;
+			
+			updateFile(employee_ssn, updatedLine);	//	Dosyayı güncelle
+			
+			alert1.showAndWait();	//Bilgilendirme uyarısı ver
+			
+			clearTextFields("all", txtfirstName, txtlastName, txtSSN, txtsearchUpdateSSN, lblsalaryValue, 
+					txtgrossSales, txtcommissionRate, txtbaseSalary, txtweeklySalary, txtwage, txthours);
+			
+			updateable[0] = false;
+			break;
+			
+		case "Base Plus Commission Employee":
+			BasePlusCommissionEmployee basePlusCommissionEmployee = (BasePlusCommissionEmployee) employee;	//	tür dönüşümü
+			double new_bpgrossSales = Double.parseDouble(txtgrossSales.getText());
+			if (new_bpgrossSales < 0) {
+				Alert alert = new Alert(AlertType.WARNING);
+				alert.setTitle("Error");
+				alert.setHeaderText("Gross sales must be >= 0!");
+				alert.showAndWait();
+				return;
+			}
+		    double new_bpcommissionRate = Double.parseDouble(txtcommissionRate.getText());
+			if (new_bpcommissionRate <= 0 || new_bpcommissionRate >= 1) {
+				Alert alert = new Alert(AlertType.WARNING);
+				alert.setTitle("Error");
+				alert.setHeaderText("Commission rate must be > 0 and < 1");
+				alert.showAndWait();
+				return;
+			}
+			double new_baseSalary = Double.parseDouble(txtbaseSalary.getText());
+			if (new_baseSalary < 0) {
+				Alert alert = new Alert(AlertType.WARNING);
+				alert.setTitle("Error");
+				alert.setHeaderText("Base salary must be >= 0!");
+				alert.showAndWait();
+				return;
+			}
+
+			basePlusCommissionEmployee.setFirstName(new_firstName);
+			basePlusCommissionEmployee.setLastName(new_lastName);
+			basePlusCommissionEmployee.setGrossSales(new_bpgrossSales);
+			basePlusCommissionEmployee.setCommissionRate(new_bpcommissionRate);
+			basePlusCommissionEmployee.setBaseSalary(new_baseSalary);
+
+			updatedLine = "HourlyEmployee, " + new_firstName + ", " + new_lastName + ", " + employee_ssn 
+					+ ", " + new_bpgrossSales + ", " + new_bpcommissionRate + ", " + new_baseSalary;
+			
+			updateFile(employee_ssn, updatedLine);	//	Dosyayı güncelle
+			
+			alert1.showAndWait();	//Bilgilendirme uyarısı ver
+			
+			clearTextFields("all", txtfirstName, txtlastName, txtSSN, txtsearchUpdateSSN, lblsalaryValue, 
+					txtgrossSales, txtcommissionRate, txtbaseSalary, txtweeklySalary, txtwage, txthours);
+			
+			updateable[0] = false;
+			break;
+			
+		}
+	}
+	
+	public static void updateFile(int employee_ssn, String updatedLine) throws IOException {
+		
+		File originalFile = new File("employeeDatabase.txt");	//Orjinal dosya
+		File tempFile = new File ("tempFile.txt");				//Geçici dosya
+		
+		FileReader fReader = new FileReader(originalFile);		//File Reader
+		FileWriter fWriter = new FileWriter(tempFile);			//File Writer
+		BufferedReader bReader = new BufferedReader(fReader);	//Buffered Reader
+		BufferedWriter bWriter = new BufferedWriter(fWriter);	//Buffered Writer
+		
+		String currentLine = bReader.readLine();		//	İlk satırı oku
+		boolean lineUpdated = false;					//	Update gerçekleşti mi
+		
+		while (currentLine != null) {	//	Son satıra kadar devam et
+			String[] data = currentLine.split(", ");	//	Satırı böl
+			if (Integer.parseInt(data[3]) == employee_ssn) {			//	SSN eşleşirse
+				bWriter.write(updatedLine);					//	Güncellenmiş satırı yazdır
+				lineUpdated = true;
+			}
+			else {
+				bWriter.write(currentLine);					//	Mevcut satırı aynen yaz
+			}
+			bWriter.newLine();
+			currentLine = bReader.readLine();	//Sonraki satırı oku
+		}
+		bWriter.close();
+		bReader.close();
+		
+		if (lineUpdated) {
+			if (!originalFile.delete()) {
+			    System.err.println("Error! Original file could not be deleted.");
+			    return;
+			}
+			if (!tempFile.renameTo(originalFile)) {
+		        System.err.println("Error! Temp file could not be renamed.");
+		        return;
+		    }
+		}
+		else {
+			tempFile.delete();	//	Güncelleme yapılmadıysa geçici dosyayı sil
+		}
 	}
 	
 }
