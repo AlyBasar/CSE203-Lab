@@ -767,7 +767,7 @@ public class Main extends Application {
 			salariedEmployee.setWeeklySalary(new_weeklySalary);
 			
 			updatedLine = "SalariedEmployee, " + new_firstName + ", " + new_lastName + ", " + employee_ssn 
-					+ ", " + new_weeklySalary;
+					+ ", " + new_weeklySalary + ", " + salariedEmployee.getPaymentAmount();
 			
 			updateFile(employee_ssn, updatedLine);	//	Dosyayı güncelle
 			
@@ -805,7 +805,7 @@ public class Main extends Application {
 			hourlyEmployee.setHours(new_hours);
 			
 			updatedLine = "HourlyEmployee, " + new_firstName + ", " + new_lastName + ", " + employee_ssn 
-					+ ", " + new_wage + ", " + new_hours;
+					+ ", " + new_wage + ", " + new_hours + ", " + hourlyEmployee.getPaymentAmount();
 			
 			updateFile(employee_ssn, updatedLine);	//	Dosyayı güncelle
 			
@@ -841,8 +841,8 @@ public class Main extends Application {
 			commissionEmployee.setGrossSales(new_grossSales);
 			commissionEmployee.setCommissionRate(new_commissionRate);
 			
-			updatedLine = "HourlyEmployee, " + new_firstName + ", " + new_lastName + ", " + employee_ssn 
-					+ ", " + new_grossSales + ", " + new_commissionRate;
+			updatedLine = "CommissionEmployee, " + new_firstName + ", " + new_lastName + ", " + employee_ssn 
+					+ ", " + new_grossSales + ", " + new_commissionRate + ", " + commissionEmployee.getPaymentAmount();
 			
 			updateFile(employee_ssn, updatedLine);	//	Dosyayı güncelle
 			
@@ -887,8 +887,9 @@ public class Main extends Application {
 			basePlusCommissionEmployee.setCommissionRate(new_bpcommissionRate);
 			basePlusCommissionEmployee.setBaseSalary(new_baseSalary);
 
-			updatedLine = "HourlyEmployee, " + new_firstName + ", " + new_lastName + ", " + employee_ssn 
-					+ ", " + new_bpgrossSales + ", " + new_bpcommissionRate + ", " + new_baseSalary;
+			updatedLine = "BasePlusCommissionEmployee, " + new_firstName + ", " + new_lastName + ", " + employee_ssn 
+					+ ", " + new_bpgrossSales + ", " + new_bpcommissionRate + ", " + new_baseSalary + ", " 
+					+ basePlusCommissionEmployee.getPaymentAmount();
 			
 			updateFile(employee_ssn, updatedLine);	//	Dosyayı güncelle
 			
